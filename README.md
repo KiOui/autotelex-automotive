@@ -1,2 +1,2 @@
-# autotelex-automotive
-A plugin for synchronizing autotelex data to a WordPress website running the Automotive WordPress theme
+# Autotelex Automotive
+A plugin for synchronizing Autotelex data to a WordPress website running the Automotive WordPress theme.
