@@ -48,7 +48,7 @@ if ( ! class_exists( 'AARest' ) ) {
 						'verkoopprijs_particulier_bedrag' => array(
 							'required'          => false,
 							'type'              => 'int',
-							'sanitize_callback' => 'sanitize_int',
+							'sanitize_callback' => 'aa_sanitize_int',
 						),
 						'opmerkingen'                     => array(
 							'required'          => false,
@@ -58,18 +58,18 @@ if ( ! class_exists( 'AARest' ) ) {
 						'titel'                           => array(
 							'required'          => false,
 							'type'              => 'string',
-							'sanitize_callback' => 'sanitize_text_field',
+							'sanitize_callback' => array( $this, 'sanitize_titel' ),
 						),
 						'verkocht'                        => array(
 							'required'          => true,
 							'type'              => 'bool',
 							'validate_callback' => array( $this, 'validate_verkocht' ),
-							'sanitize_callback' => 'sanitize_autotelex_bool',
+							'sanitize_callback' => 'aa_sanitize_autotelex_bool',
 						),
 						'afbeeldingen'                    => array(
 							'required'          => false,
 							'type'              => 'string',
-							'sanitize_callback' => 'sanitize_url_list',
+							'sanitize_callback' => 'aa_sanitize_url_list',
 						),
 					),
 					'permission_callback' => array( $this, 'check_permission' ),
@@ -87,13 +87,17 @@ if ( ! class_exists( 'AARest' ) ) {
 		public function manage_stock( WP_REST_Request $request ): WP_REST_Response {
 			$action = $request->get_param( 'actie' );
 			if ( 'add' === $action ) {
-				$this->add_listing( $request );
+				$return_value = $this->add_listing( $request );
 			} elseif ( 'change' === $action ) {
-				$this->change_listing( $request );
+				$return_value = $this->change_listing( $request );
 			} else {
-				$this->delete_listing( $request );
+				$return_value = $this->delete_listing( $request );
 			}
-			return rest_ensure_response( new WP_REST_Response( '', 200 ) );
+			if ( $return_value ) {
+				return rest_ensure_response( new WP_REST_Response( '', 200 ) );
+			} else {
+				return rest_ensure_response( new WP_REST_Response( '', 500 ) );
+			}
 		}
 
 		/**
@@ -120,6 +124,10 @@ if ( ! class_exists( 'AARest' ) ) {
 		 * @return bool
 		 */
 		private function add_listing( WP_REST_Request $request ): bool {
+			if ( $this->listing_exists( $request->get_param( 'voertuignr' ) ) ) {
+				return false;
+			}
+
 			$post_id = wp_insert_post(
 				array(
 					'post_title'   => $request->get_param( 'titel' ),
@@ -127,13 +135,22 @@ if ( ! class_exists( 'AARest' ) ) {
 					'post_status'  => 'publish',
 					'post_type'    => 'listings',
 					'meta_input'   => array(
-						'aa_unique_id' => $request->get_param( 'voertuignr' ),
+						'aa_unique_id'    => $request->get_param( 'voertuignr' ),
+						'listing_options' => serialize(
+							array(
+								'price' => array(
+									'value'    => is_null( $request->get_param( 'verkoopprijs_particulier_bedrag' ) ) ? '' : $request->get_param( 'verkoopprijs_particulier_bedrag' ),
+									'original' => '',
+								),
+							)
+						),
 					),
 				)
 			);
-			if ( 0 === $post_id || 'WP_Error' === gettype( $post_id ) ) {
+			if ( 0 === $post_id ) {
 				return false;
 			}
+			$this->update_attachment_data_for_post( get_post( $post_id ), $request->get_param( 'afbeeldingen' ) );
 			return true;
 		}
 
@@ -150,7 +167,68 @@ if ( ! class_exists( 'AARest' ) ) {
 				return false;
 			}
 
+			$listing_options = unserialize( get_post_meta( $post->ID, 'listing_options', true ) );
+			if ( ! is_null( $request->get_param( 'verkoopprijs_particulier_bedrag' ) ) ) {
+				if ( ! isset( $listing_options['price'] ) ) {
+					$listing_options['price'] = array();
+				}
+				$listing_options['price']['value'] = $request->get_param( 'verkoopprijs_particulier_bedrag' );
+			}
+
+			$new_post_data = array(
+				'post_title'   => $request->get_param( 'titel' ),
+				'post_content' => $request->get_param( 'opmerkingen' ),
+			);
+			$new_meta_data = array(
+				'listing_options' => serialize( $listing_options ),
+			);
+
+			$new_post_data = array_filter(
+				$new_post_data,
+				function( $element ) {
+					return ! is_null( $element );
+				}
+			);
+
+			$new_meta_data = array_filter(
+				$new_meta_data,
+				function ( $element ) {
+					return ! is_null( $element );
+				}
+			);
+
+			$new_post_data['meta_input'] = $new_meta_data;
+			$new_post_data['ID']         = $post->ID;
+
+			wp_update_post(
+				$new_post_data
+			);
+
+			$this->update_attachment_data_for_post( $post, $request->get_param( 'afbeeldingen' ) );
 			return true;
+		}
+
+		/**
+		 * Update the attachment meta data for posts.
+		 *
+		 * @param WP_Post $post The post to add the attachments to.
+		 * @param array   $attachment_urls The URLs of the attachments to add.
+		 *
+		 * @return void
+		 */
+		private function update_attachment_data_for_post( WP_Post $post, array $attachment_urls ) {
+			$attachments_to_add = array();
+			foreach ( $attachment_urls as $attachment_url ) {
+				$attachment_id = aa_get_attachment_by_url( $attachment_url );
+				if ( null === $attachment_id ) {
+					$attachment_id = aa_generate_attachment_from_url( $attachment_url );
+				}
+				if ( null !== $attachment_id ) {
+					$attachments_to_add[] = $attachment_id;
+				}
+			}
+
+			update_post_meta( $post->ID, 'gallery_images', $attachments_to_add );
 		}
 
 		/**
@@ -167,11 +245,29 @@ if ( ! class_exists( 'AARest' ) ) {
 			}
 
 			$deleted_post = wp_delete_post( $post->ID, true );
-			if ( gettype( $deleted_post ) !== 'WP_Post' ) {
+			if ( false === $deleted_post || null === $deleted_post ) {
 				return false;
 			}
 
 			return true;
+		}
+
+		/**
+		 * Verify whether a listing already exists (based on the value of aa_unique_id).
+		 *
+		 * @param string $meta_id The meta ID value.
+		 *
+		 * @return bool True when the post exists already, false otherwise.
+		 */
+		private function listing_exists( string $meta_id ): bool {
+			$posts = get_posts(
+				array(
+					'meta_key'   => 'aa_unique_id',
+					'meta_value' => $meta_id,
+					'post_type'  => 'listings',
+				)
+			);
+			return count( $posts ) > 0;
 		}
 
 		/**
@@ -184,13 +280,9 @@ if ( ! class_exists( 'AARest' ) ) {
 		private function get_listing_by_meta_id( string $meta_id ): ?WP_Post {
 			$posts = get_posts(
 				array(
-					'meta_query' => array(
-						array(
-							'key'     => 'aa_unique_id',
-							'value'   => $meta_id,
-							'compare' => '=',
-						),
-					),
+					'meta_key'   => 'aa_unique_id',
+					'meta_value' => $meta_id,
+					'post_type'  => 'listings',
 				)
 			);
 			if ( count( $posts ) === 1 ) {
@@ -227,7 +319,7 @@ if ( ! class_exists( 'AARest' ) ) {
 		}
 
 		/**
-		 * Sanitize verkocht REST parameter.
+		 * Validate verkocht REST parameter.
 		 *
 		 * @param mixed           $param   The value of the REST parameter.
 		 * @param WP_REST_Request $request The request.
@@ -237,6 +329,19 @@ if ( ! class_exists( 'AARest' ) ) {
 		 */
 		public function validate_verkocht( $param, WP_REST_Request $request, string $key ): bool {
 			return 'j' === $param || 'n' === $param;
+		}
+
+		/**
+		 * Sanitize titel REST parameter
+		 *
+		 * @param mixed           $value   The value of the REST parameter.
+		 * @param WP_REST_Request $request The request.
+		 * @param string          $param   The parameter name.
+		 *
+		 * @return string Sanitized REST parameter for titel.
+		 */
+		public function sanitize_titel( $value, WP_REST_Request $request, string $param ): string {
+			return wp_strip_all_tags( sanitize_text_field( $value ) );
 		}
 	}
 }
