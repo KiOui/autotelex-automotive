@@ -25,6 +25,19 @@ if ( ! defined( 'AA_PLUGIN_URI' ) ) {
 
 require_once ABSPATH . 'wp-admin/includes/plugin.php';
 
-require_once dirname( __FILE__ ) . '/includes/class-aacore.php';
-
-$GLOBALS['AACore'] = AACore::instance();
+if ( is_plugin_active( 'automotive/index.php' ) ) {
+	include_once dirname( __FILE__ ) . '/includes/class-aacore.php';
+	$GLOBALS['AACore'] = AACore::instance();
+} else {
+	/**
+	 * Echo an admin notice about the activation of the listing plugin.
+	 *
+	 * @return void
+	 */
+	function aa_admin_notice_automotive_inactive(): void {
+		if ( is_admin() && current_user_can( 'edit_plugins' ) ) {
+			echo '<div class="notice notice-error"><p>' . esc_html( __( 'Autotelex Automotive requires the Automotive plugin to be active. Please activate the Automotive plugin to use the Autotelex Automotive plugin', 'autotelex-automotive' ) ) . '</p></div>';
+		}
+	}
+	add_action( 'admin_notices', 'aa_admin_notice_automotive_inactive' );
+}
