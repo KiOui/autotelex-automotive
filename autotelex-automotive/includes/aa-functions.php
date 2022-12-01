@@ -282,3 +282,17 @@ if ( ! function_exists( 'aa_format_afbeeldingen' ) ) {
 		return $xml_array;
 	}
 }
+
+if ( ! function_exists( 'aa_is_xml_content_type' ) ) {
+	function aa_is_xml_content_type( string $content_type ): bool {
+		$accepted = array(
+			'text/xml',
+			'application/rss+xml',
+			'application/atom+xml',
+			'application/rdf+xml',
+			'text/xml+oembed',
+			'application/xml+oembed',
+		);
+		return in_array( $content_type, $accepted );
+	}
+}

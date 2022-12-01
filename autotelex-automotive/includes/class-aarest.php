@@ -35,7 +35,7 @@ if ( ! class_exists( 'AARest' ) ) {
 							'validate_callback' => array( $this, 'validate_actie' ),
 							'sanitize_callback' => array( $this, 'sanitize_actie' ),
 						),
-						'voertuignr'                      => array(
+						'voertuignr_hexon'                => array(
 							'required'          => true,
 							'type'              => 'string',
 							'sanitize_callback' => 'sanitize_text_field',
@@ -61,7 +61,7 @@ if ( ! class_exists( 'AARest' ) ) {
 							'sanitize_callback' => array( $this, 'sanitize_titel' ),
 						),
 						'verkocht'                        => array(
-							'required'          => true,
+							'required'          => false,
 							'type'              => 'bool',
 							'validate_callback' => array( $this, 'validate_verkocht' ),
 							'sanitize_callback' => 'aa_sanitize_autotelex_bool',
@@ -124,7 +124,7 @@ if ( ! class_exists( 'AARest' ) ) {
 		 * @return bool
 		 */
 		private function add_listing( WP_REST_Request $request ): bool {
-			if ( $this->listing_exists( $request->get_param( 'voertuignr' ) ) ) {
+			if ( $this->listing_exists( $request->get_param( 'voertuignr_hexon' ) ) ) {
 				return false;
 			}
 
@@ -135,7 +135,7 @@ if ( ! class_exists( 'AARest' ) ) {
 					'post_status'  => 'publish',
 					'post_type'    => 'listings',
 					'meta_input'   => array(
-						'aa_unique_id'    => $request->get_param( 'voertuignr' ),
+						'aa_unique_id'    => $request->get_param( 'voertuignr_hexon' ),
 						'listing_options' => serialize(
 							array(
 								'price' => array(
@@ -162,7 +162,7 @@ if ( ! class_exists( 'AARest' ) ) {
 		 * @return bool
 		 */
 		private function change_listing( WP_REST_Request $request ): bool {
-			$post = $this->get_listing_by_meta_id( $request->get_param( 'voertuignr' ) );
+			$post = $this->get_listing_by_meta_id( $request->get_param( 'voertuignr_hexon' ) );
 			if ( is_null( $post ) ) {
 				return false;
 			}
@@ -239,7 +239,7 @@ if ( ! class_exists( 'AARest' ) ) {
 		 * @return bool Whether the listing was deleted successfully.
 		 */
 		private function delete_listing( WP_REST_Request $request ): bool {
-			$post = $this->get_listing_by_meta_id( $request->get_param( 'voertuignr' ) );
+			$post = $this->get_listing_by_meta_id( $request->get_param( 'voertuignr_hexon' ) );
 			if ( is_null( $post ) ) {
 				return false;
 			}
