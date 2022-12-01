@@ -284,6 +284,13 @@ if ( ! function_exists( 'aa_format_afbeeldingen' ) ) {
 }
 
 if ( ! function_exists( 'aa_is_xml_content_type' ) ) {
+	/**
+	 * Verify whether content-type is one of the XML content types.
+	 *
+	 * @param string $content_type The Content-Type header value.
+	 *
+	 * @return bool True when the content type is one of the XML content types, false otherwise.
+	 */
 	function aa_is_xml_content_type( string $content_type ): bool {
 		$accepted = array(
 			'text/xml',
@@ -293,6 +300,35 @@ if ( ! function_exists( 'aa_is_xml_content_type' ) ) {
 			'text/xml+oembed',
 			'application/xml+oembed',
 		);
-		return in_array( $content_type, $accepted );
+		return in_array( $content_type, $accepted, true );
+	}
+}
+
+if ( ! function_exists( 'aa_convert_xml_request_to_json_request' ) ) {
+	/**
+	 * Convert XML in a REST request for this plugin to JSON.
+	 *
+	 * @param mixed           $result The result to return.
+	 * @param WP_REST_Server  $server The WP REST Server handling the result.
+	 * @param WP_REST_Request $request The WP_REST_Request with possibly XML data.
+	 *
+	 * @return mixed Either the result or a WP_REST_Response with a request containing JSON data instead of XML.
+	 */
+	function aa_convert_xml_request_to_json_request( $result, WP_REST_Server $server, WP_REST_Request $request ) {
+		$content_type = $request->get_content_type();
+
+		if ( str_starts_with( $request->get_route(), '/autotelex-automotive' ) && str_starts_with( $request->get_body(), '<?xml' ) && isset( $content_type['value'] ) && aa_is_xml_content_type( $content_type['value'] ) ) {
+			$xml_obj = simplexml_load_string( $request->get_body() );
+			if ( false !== $xml_obj ) {
+				$properties_as_array = aa_xml_to_array( $xml_obj );
+				$properties_as_array = aa_pre_process_xml_array( $properties_as_array );
+				$properties_as_array = aa_remove_voertuig( $properties_as_array );
+				$properties_as_array = aa_format_afbeeldingen( $properties_as_array );
+				$request->set_header( 'content-type', 'application/json' );
+				$request->set_body( wp_json_encode( $properties_as_array ) );
+				return $server->dispatch( $request );
+			}
+		}
+		return $result;
 	}
 }

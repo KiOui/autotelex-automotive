@@ -118,33 +118,6 @@ if ( ! class_exists( 'AACore' ) ) {
 		}
 
 		/**
-		 * Convert XML in a REST request for this plugin to JSON.
-		 *
-		 * @param mixed           $result The result to return.
-		 * @param WP_REST_Server  $server The WP REST Server handling the result.
-		 * @param WP_REST_Request $request The WP_REST_Request with possibly XML data.
-		 *
-		 * @return mixed Either the result or a WP_REST_Response with a request containing JSON data instead of XML.
-		 */
-		public function filter_http_request( $result, WP_REST_Server $server, WP_REST_Request $request ) {
-			$content_type = $request->get_content_type();
-
-			if ( str_starts_with( $request->get_route(), '/autotelex-automotive' ) && str_starts_with( $request->get_body(), '<?xml' ) && isset( $content_type['value'] ) && aa_is_xml_content_type( $content_type['value'] ) ) {
-				$xml_obj = simplexml_load_string( $request->get_body() );
-				if ( false !== $xml_obj ) {
-					$properties_as_array = aa_xml_to_array( $xml_obj );
-					$properties_as_array = aa_pre_process_xml_array( $properties_as_array );
-					$properties_as_array = aa_remove_voertuig( $properties_as_array );
-					$properties_as_array = aa_format_afbeeldingen( $properties_as_array );
-					$request->set_header( 'content-type', 'application/json' );
-					$request->set_body( wp_json_encode( $properties_as_array ) );
-					return $server->dispatch( $request );
-				}
-			}
-			return $result;
-		}
-
-		/**
 		 * Add actions and filters.
 		 */
 		private function actions_and_filters(): void {
@@ -154,7 +127,7 @@ if ( ! class_exists( 'AACore' ) ) {
 				'rest_api_init',
 				array( $this->rest, 'add_rest_api_endpoint' )
 			);
-			add_filter( 'rest_pre_dispatch', array( $this, 'filter_http_request' ), 10, 3 );
+			add_filter( 'rest_pre_dispatch', 'aa_convert_xml_request_to_json_request', 10, 3 );
 		}
 	}
 }
