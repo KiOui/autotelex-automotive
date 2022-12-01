@@ -175,3 +175,110 @@ if ( ! function_exists( 'aa_generate_attachment' ) ) {
 		return $attach_id;
 	}
 }
+
+if ( ! function_exists( 'aa_xml_to_array' ) ) {
+	/**
+	 * Convert a SimpleXMLElement to an array.
+	 *
+	 * @param SimpleXMLElement $xml The SimpleXMLElement to convert.
+	 *
+	 * @return array[] The SimpleXMLElement in array format.
+	 */
+	function aa_xml_to_array( SimpleXMLElement $xml ): array {
+		$parser = function ( SimpleXMLElement $xml, array $collection = array() ) use ( &$parser ) {
+			$nodes      = $xml->children();
+			$attributes = $xml->attributes();
+
+			if ( 0 !== count( $attributes ) ) {
+				foreach ( $attributes as $attr_name => $attr_value ) {
+					$collection['attributes'][ $attr_name ] = strval( $attr_value );
+				}
+			}
+
+			if ( 0 === $nodes->count() ) {
+				return strval( $xml );
+			}
+
+			foreach ( $nodes as $node_name => $node_value ) {
+				if ( count( $node_value->xpath( '../' . $node_name ) ) < 2 ) {
+					$collection[ $node_name ] = $parser( $node_value );
+					continue;
+				}
+
+				$collection[ $node_name ][] = $parser( $node_value );
+			}
+
+			return $collection;
+		};
+
+		return array(
+			$xml->getName() => $parser( $xml ),
+		);
+	}
+}
+
+if ( ! function_exists( 'aa_pre_process_xml_array' ) ) {
+	/**
+	 * Pre-process the XML array by removing the attributes key.
+	 *
+	 * @param array $xml_array An XML array with possible attributes keys.
+	 *
+	 * @return array An XML array without attribute keys.
+	 */
+	function aa_pre_process_xml_array( array $xml_array ): array {
+		$return_value = array();
+		foreach ( $xml_array as $key => $value ) {
+			if ( 'attributes' === $key && is_array( $value ) ) {
+				foreach ( $value as $key_of_value => $value_of_value ) {
+					if ( ! isset( $xml_array[ $key_of_value ] ) ) {
+						$return_value[ $key_of_value ] = $value_of_value;
+					}
+				}
+			} elseif ( is_array( $value ) ) {
+				$return_value[ $key ] = aa_pre_process_xml_array( $value );
+			} else {
+				$return_value[ $key ] = $value;
+			}
+		}
+		return $return_value;
+	}
+}
+
+if ( ! function_exists( 'aa_remove_voertuig' ) ) {
+	/**
+	 * Remove the global voertuig key from an array.
+	 *
+	 * @param array $xml_array The array with a possible global voertuig key.
+	 *
+	 * @return array The value of $xml_array['voertuig'] if it exists, $xml_array otherwise.
+	 */
+	function aa_remove_voertuig( array $xml_array ): array {
+		if ( isset( $xml_array['voertuig'] ) && is_array( $xml_array['voertuig'] ) ) {
+			return $xml_array['voertuig'];
+		}
+		return $xml_array;
+	}
+}
+
+if ( ! function_exists( 'aa_format_afbeeldingen' ) ) {
+	/**
+	 * Restructure the JSON in the afbeeldingen key to correspond to the Autotelex schema.
+	 *
+	 * @param array $xml_array An array of elements.
+	 *
+	 * @return array The same array of elements but if the afbeeldingen key existed a converted list of images.
+	 */
+	function aa_format_afbeeldingen( array $xml_array ): array {
+		if ( isset( $xml_array['afbeeldingen'] ) && is_array( $xml_array['afbeeldingen'] ) && isset( $xml_array['afbeeldingen']['afbeelding'] ) && is_array( $xml_array['afbeeldingen']['afbeelding'] ) ) {
+			$return_value = array();
+			foreach ( $xml_array['afbeeldingen']['afbeelding'] as $afbeelding ) {
+				if ( isset( $afbeelding['url'] ) && is_string( $afbeelding['url'] ) ) {
+					$return_value[] = $afbeelding['url'];
+				}
+			}
+			$xml_array['afbeeldingen'] = implode( ',', $return_value );
+			return $xml_array;
+		}
+		return $xml_array;
+	}
+}
