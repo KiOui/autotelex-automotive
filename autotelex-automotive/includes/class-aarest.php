@@ -53,7 +53,7 @@ if ( ! class_exists( 'AARest' ) ) {
 						'opmerkingen'              => array(
 							'required'          => false,
 							'type'              => 'string',
-							'sanitize_callback' => 'sanitize_text_field',
+							'sanitize_callback' => array( $this, 'sanitize_opmerkingen' ),
 						),
 						'titel'                    => array(
 							'required'          => false,
@@ -417,7 +417,7 @@ if ( ! class_exists( 'AARest' ) ) {
 		}
 
 		/**
-		 * Sanitize titel REST parameter
+		 * Sanitize titel REST parameter.
 		 *
 		 * @param mixed           $value   The value of the REST parameter.
 		 * @param WP_REST_Request $request The request.
@@ -427,6 +427,30 @@ if ( ! class_exists( 'AARest' ) ) {
 		 */
 		public function sanitize_titel( $value, WP_REST_Request $request, string $param ): string {
 			return wp_strip_all_tags( sanitize_text_field( $value ) );
+		}
+
+		/**
+		 * Sanitize opmerkingen REST parameter.
+		 *
+		 * @param mixed           $value The value of the REST parameter.
+		 * @param WP_REST_Request $request The request.
+		 * @param string          $param The parameter name.
+		 *
+		 * @return string Sanitized REST parameter for opmerkingen.
+		 */
+		public function sanitize_opmerkingen( $value, WP_REST_Request $request, string $param ): string {
+			return strip_tags(
+				$value,
+				array(
+					'br',
+					'b',
+					'strong',
+					'li',
+					'ul',
+					'ol',
+					'i',
+				)
+			);
 		}
 	}
 }
