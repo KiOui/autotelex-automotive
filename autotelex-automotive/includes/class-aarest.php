@@ -140,9 +140,9 @@ if ( ! class_exists( 'AARest' ) ) {
 
 			$verkocht_value = $request->get_param( 'verkocht' );
 			if ( 'j' === $verkocht_value ) {
-				$verkocht = true;
+				$verkocht = 1;
 			} else {
-				$verkocht = false;
+				$verkocht = 2;
 			}
 
 			$post_id = wp_insert_post(
@@ -224,9 +224,9 @@ if ( ! class_exists( 'AARest' ) ) {
 
 			$verkocht_value = $request->get_param( 'verkocht' );
 			if ( 'j' === $verkocht_value ) {
-				$verkocht = true;
+				$verkocht = 1;
 			} elseif ( 'n' === $verkocht_value ) {
-				$verkocht = false;
+				$verkocht = 2;
 			} else {
 				$verkocht = null;
 			}
