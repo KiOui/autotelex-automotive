@@ -93,11 +93,13 @@ if ( ! class_exists( 'AARest' ) ) {
 			} else {
 				$return_value = $this->delete_listing( $request );
 			}
-			if ( $return_value ) {
-				return rest_ensure_response( new WP_REST_Response( '', 200 ) );
-			} else {
-				return rest_ensure_response( new WP_REST_Response( '', 500 ) );
+
+			// Overwrite data because Autotelex expects a 1.
+			if ( $return_value->get_status() === 200 ) {
+				$return_value->set_data( 1 );
 			}
+
+			return rest_ensure_response( $return_value );
 		}
 
 		/**
@@ -121,11 +123,19 @@ if ( ! class_exists( 'AARest' ) ) {
 		 *
 		 * @param WP_REST_Request $request The REST request.
 		 *
-		 * @return bool
+		 * @return WP_REST_Response A response object with the response.
 		 */
-		private function add_listing( WP_REST_Request $request ): bool {
+		private function add_listing( WP_REST_Request $request ): WP_REST_Response {
 			if ( $this->listing_exists( $request->get_param( 'voertuignr_hexon' ) ) ) {
-				return false;
+				return new WP_REST_Response(
+					wp_json_encode(
+						(object) array(
+							'status' => 'failed',
+							'reason' => 'Listing with the same Hexon ID already exists.',
+						)
+					),
+					400
+				);
 			}
 
 			$post_id = wp_insert_post(
@@ -148,10 +158,26 @@ if ( ! class_exists( 'AARest' ) ) {
 				)
 			);
 			if ( 0 === $post_id ) {
-				return false;
+				return new WP_REST_Response(
+					wp_json_encode(
+						(object) array(
+							'status' => 'failed',
+							'reason' => 'Failed to create a post for listing.',
+						)
+					),
+					400
+				);
 			}
 			$this->update_attachment_data_for_post( get_post( $post_id ), $request->get_param( 'afbeeldingen' ) );
-			return true;
+			return new WP_REST_Response(
+				wp_json_encode(
+					(object) array(
+						'status'  => 'success',
+						'details' => get_permalink( $post_id ),
+					)
+				),
+				200
+			);
 		}
 
 		/**
@@ -159,12 +185,20 @@ if ( ! class_exists( 'AARest' ) ) {
 		 *
 		 * @param WP_REST_Request $request The REST request.
 		 *
-		 * @return bool
+		 * @return WP_REST_Response A response object with the response.
 		 */
-		private function change_listing( WP_REST_Request $request ): bool {
+		private function change_listing( WP_REST_Request $request ): WP_REST_Response {
 			$post = $this->get_listing_by_meta_id( $request->get_param( 'voertuignr_hexon' ) );
 			if ( is_null( $post ) ) {
-				return false;
+				return new WP_REST_Response(
+					wp_json_encode(
+						(object) array(
+							'status' => 'failed',
+							'reason' => 'The post with that Hexon ID does not exist.',
+						)
+					),
+					400
+				);
 			}
 
 			$listing_options = unserialize( get_post_meta( $post->ID, 'listing_options', true ) );
@@ -205,7 +239,15 @@ if ( ! class_exists( 'AARest' ) ) {
 			);
 
 			$this->update_attachment_data_for_post( $post, $request->get_param( 'afbeeldingen' ) );
-			return true;
+			return new WP_REST_Response(
+				wp_json_encode(
+					(object) array(
+						'status'  => 'success',
+						'details' => get_permalink( $post->ID ),
+					)
+				),
+				200
+			);
 		}
 
 		/**
@@ -216,7 +258,7 @@ if ( ! class_exists( 'AARest' ) ) {
 		 *
 		 * @return void
 		 */
-		private function update_attachment_data_for_post( WP_Post $post, array $attachment_urls ) {
+		private function update_attachment_data_for_post( WP_Post $post, array $attachment_urls ): void {
 			$attachments_to_add = array();
 			foreach ( $attachment_urls as $attachment_url ) {
 				$attachment_id = aa_get_attachment_by_url( $attachment_url );
@@ -236,20 +278,44 @@ if ( ! class_exists( 'AARest' ) ) {
 		 *
 		 * @param WP_REST_Request $request The REST request.
 		 *
-		 * @return bool Whether the listing was deleted successfully.
+		 * @return WP_REST_Response A response object with the response.
 		 */
-		private function delete_listing( WP_REST_Request $request ): bool {
+		private function delete_listing( WP_REST_Request $request ): WP_REST_Response {
 			$post = $this->get_listing_by_meta_id( $request->get_param( 'voertuignr_hexon' ) );
 			if ( is_null( $post ) ) {
-				return false;
+				return new WP_REST_Response(
+					wp_json_encode(
+						(object) array(
+							'status' => 'failed',
+							'reason' => 'The post with that Hexon ID does not exist.',
+						)
+					),
+					400
+				);
 			}
 
 			$deleted_post = wp_delete_post( $post->ID, true );
 			if ( false === $deleted_post || null === $deleted_post ) {
-				return false;
+				return new WP_REST_Response(
+					wp_json_encode(
+						(object) array(
+							'status' => 'failed',
+							'reason' => 'The post could not be deleted.',
+						)
+					),
+					400
+				);
 			}
 
-			return true;
+			return new WP_REST_Response(
+				wp_json_encode(
+					(object) array(
+						'status' => 'success',
+						'reason' => 'Listing successfully deleted.',
+					)
+				),
+				200
+			);
 		}
 
 		/**
