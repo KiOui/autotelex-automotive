@@ -304,6 +304,28 @@ if ( ! function_exists( 'aa_is_xml_content_type' ) ) {
 	}
 }
 
+if ( ! function_exists( 'aa_set_price' ) ) {
+	/**
+	 * Convert verkoopprijs_particulier to an integer if possible.
+	 *
+	 * @param array $xml_array The initial array.
+	 *
+	 * @return array The converted array if possible.
+	 */
+	function aa_set_price( array $xml_array ): array {
+		if ( isset( $xml_array['verkoopprijs_particulier'] ) && is_array( $xml_array['verkoopprijs_particulier'] ) ) {
+			$verkoopprijs_array = $xml_array['verkoopprijs_particulier'];
+			if ( isset( $verkoopprijs_array['prijs'] ) && is_array( $verkoopprijs_array['prijs'] ) ) {
+				$verkoopprijs = $verkoopprijs_array['prijs'];
+				if ( isset( $verkoopprijs['bedrag'] ) ) {
+					$xml_array['verkoopprijs_particulier'] = $verkoopprijs['bedrag'];
+				}
+			}
+		}
+		return $xml_array;
+	}
+}
+
 if ( ! function_exists( 'aa_convert_xml_request_to_json_request' ) ) {
 	/**
 	 * Convert XML in a REST request for this plugin to JSON.
@@ -324,6 +346,7 @@ if ( ! function_exists( 'aa_convert_xml_request_to_json_request' ) ) {
 				$properties_as_array = aa_pre_process_xml_array( $properties_as_array );
 				$properties_as_array = aa_remove_voertuig( $properties_as_array );
 				$properties_as_array = aa_format_afbeeldingen( $properties_as_array );
+				$properties_as_array = aa_set_price( $properties_as_array );
 				$request->set_header( 'content-type', 'application/json' );
 				$request->set_body( wp_json_encode( $properties_as_array ) );
 				return $server->dispatch( $request );

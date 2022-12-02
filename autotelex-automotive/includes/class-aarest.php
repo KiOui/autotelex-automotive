@@ -29,44 +29,44 @@ if ( ! class_exists( 'AARest' ) ) {
 					'methods'             => 'POST',
 					'callback'            => array( $this, 'manage_stock' ),
 					'args'                => array(
-						'actie'                           => array(
+						'actie'                    => array(
 							'required'          => true,
 							'type'              => 'string',
 							'validate_callback' => array( $this, 'validate_actie' ),
 							'sanitize_callback' => array( $this, 'sanitize_actie' ),
 						),
-						'voertuignr_hexon'                => array(
+						'voertuignr_hexon'         => array(
 							'required'          => true,
 							'type'              => 'string',
 							'sanitize_callback' => 'sanitize_text_field',
 						),
-						'kenteken'                        => array(
+						'kenteken'                 => array(
 							'required'          => false,
 							'type'              => 'string',
 							'sanitize_callback' => 'sanitize_text_field',
 						),
-						'verkoopprijs_particulier_bedrag' => array(
+						'verkoopprijs_particulier' => array(
 							'required'          => false,
 							'type'              => 'int',
 							'sanitize_callback' => 'aa_sanitize_int',
 						),
-						'opmerkingen'                     => array(
+						'opmerkingen'              => array(
 							'required'          => false,
 							'type'              => 'string',
 							'sanitize_callback' => 'sanitize_text_field',
 						),
-						'titel'                           => array(
+						'titel'                    => array(
 							'required'          => false,
 							'type'              => 'string',
 							'sanitize_callback' => array( $this, 'sanitize_titel' ),
 						),
-						'verkocht'                        => array(
+						'verkocht'                 => array(
 							'required'          => false,
 							'type'              => 'bool',
 							'validate_callback' => array( $this, 'validate_verkocht' ),
 							'sanitize_callback' => 'aa_sanitize_autotelex_bool',
 						),
-						'afbeeldingen'                    => array(
+						'afbeeldingen'             => array(
 							'required'          => false,
 							'type'              => 'string',
 							'sanitize_callback' => 'aa_sanitize_url_list',
@@ -138,6 +138,13 @@ if ( ! class_exists( 'AARest' ) ) {
 				);
 			}
 
+			$verkocht_value = $request->get_param( 'verkocht' );
+			if ( 'j' === $verkocht_value ) {
+				$verkocht = true;
+			} else {
+				$verkocht = false;
+			}
+
 			$post_id = wp_insert_post(
 				array(
 					'post_title'   => $request->get_param( 'titel' ),
@@ -149,11 +156,12 @@ if ( ! class_exists( 'AARest' ) ) {
 						'listing_options' => serialize(
 							array(
 								'price' => array(
-									'value'    => is_null( $request->get_param( 'verkoopprijs_particulier_bedrag' ) ) ? '' : $request->get_param( 'verkoopprijs_particulier_bedrag' ),
+									'value'    => is_null( $request->get_param( 'verkoopprijs_particulier' ) ) ? '' : $request->get_param( 'verkoopprijs_particulier' ),
 									'original' => '',
 								),
 							)
 						),
+						'car_sold'        => $verkocht,
 					),
 				)
 			);
@@ -202,19 +210,30 @@ if ( ! class_exists( 'AARest' ) ) {
 			}
 
 			$listing_options = unserialize( get_post_meta( $post->ID, 'listing_options', true ) );
-			if ( ! is_null( $request->get_param( 'verkoopprijs_particulier_bedrag' ) ) ) {
+			if ( ! is_null( $request->get_param( 'verkoopprijs_particulier' ) ) ) {
 				if ( ! isset( $listing_options['price'] ) ) {
 					$listing_options['price'] = array();
 				}
-				$listing_options['price']['value'] = $request->get_param( 'verkoopprijs_particulier_bedrag' );
+				$listing_options['price']['value'] = $request->get_param( 'verkoopprijs_particulier' );
 			}
 
 			$new_post_data = array(
 				'post_title'   => $request->get_param( 'titel' ),
 				'post_content' => $request->get_param( 'opmerkingen' ),
 			);
+
+			$verkocht_value = $request->get_param( 'verkocht' );
+			if ( 'j' === $verkocht_value ) {
+				$verkocht = true;
+			} elseif ( 'n' === $verkocht_value ) {
+				$verkocht = false;
+			} else {
+				$verkocht = null;
+			}
+
 			$new_meta_data = array(
 				'listing_options' => serialize( $listing_options ),
+				'verkocht'        => $verkocht,
 			);
 
 			$new_post_data = array_filter(
