@@ -25,7 +25,7 @@ if ( ! defined( 'AA_PLUGIN_URI' ) ) {
 
 require_once ABSPATH . 'wp-admin/includes/plugin.php';
 
-if ( true || is_plugin_active( 'automotive/index.php' ) ) {
+if ( is_plugin_active( 'automotive/index.php' ) ) {
 	include_once dirname( __FILE__ ) . '/includes/class-aacore.php';
 	$GLOBALS['AACore'] = AACore::instance();
 } else {
