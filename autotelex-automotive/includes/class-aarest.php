@@ -112,9 +112,8 @@ if ( ! class_exists( 'AARest' ) ) {
 				return false;
 			}
 
-			$option   = get_option( 'autotelex_automotive_settings' );
-			$username = $option['authentication_settings_username'];
-			$password = $option['authentication_settings_password'];
+			$username = AASettings::instance()->get_settings()->get_value( 'authentication_settings_username' );
+			$password = AASettings::instance()->get_settings()->get_value( 'authentication_settings_password' );
 			return $username === $_SERVER['PHP_AUTH_USER'] && $password === $_SERVER['PHP_AUTH_PW'];
 		}
 
@@ -313,28 +312,41 @@ if ( ! class_exists( 'AARest' ) ) {
 				);
 			}
 
-			$deleted_post = wp_delete_post( $post->ID, true );
-			if ( false === $deleted_post || null === $deleted_post ) {
+			$should_delete_listings = AASettings::instance()->get_settings()->get_value( 'rest_remove_listings_on_delete_call' );
+			if ( $should_delete_listings ) {
+				$deleted_post = wp_delete_post( $post->ID, true );
+				if ( false === $deleted_post || null === $deleted_post ) {
+					return new WP_REST_Response(
+						wp_json_encode(
+							(object) array(
+								'status' => 'failed',
+								'reason' => 'The post could not be deleted.',
+							)
+						),
+						400
+					);
+				}
+
 				return new WP_REST_Response(
 					wp_json_encode(
 						(object) array(
-							'status' => 'failed',
-							'reason' => 'The post could not be deleted.',
+							'status' => 'success',
+							'reason' => 'Listing successfully deleted.',
 						)
 					),
-					400
+					200
+				);
+			} else {
+				return new WP_REST_Response(
+					wp_json_encode(
+						(object) array(
+							'status' => 'success',
+							'reason' => 'Listing was found but not deleted due to plugin settings.',
+						)
+					),
+					200
 				);
 			}
-
-			return new WP_REST_Response(
-				wp_json_encode(
-					(object) array(
-						'status' => 'success',
-						'reason' => 'Listing successfully deleted.',
-					)
-				),
-				200
-			);
 		}
 
 		/**

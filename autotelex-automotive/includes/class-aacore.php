@@ -68,9 +68,9 @@ if ( ! class_exists( 'AACore' ) ) {
 		 * Constructor.
 		 */
 		private function __construct() {
+			$this->define_constants();
 			$this->rest     = new AARest();
 			$this->settings = new AASettings();
-			$this->define_constants();
 			$this->actions_and_filters();
 			$this->settings->actions_and_filters();
 		}

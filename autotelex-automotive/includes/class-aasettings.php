@@ -26,6 +26,20 @@ if ( ! class_exists( 'AASettings' ) ) {
 		protected static ?AASettings $instance = null;
 
 		/**
+		 * The instance of the settings class.
+		 *
+		 * @var Settings
+		 */
+		private Settings $settings;
+
+		/**
+		 * The instance of the settings group class.
+		 *
+		 * @var SettingsGroup
+		 */
+		private SettingsGroup $settings_group;
+
+		/**
 		 * Autotelex Automotive Settings instance
 		 *
 		 * Uses the Singleton pattern to load 1 instance of this class at maximum
@@ -41,120 +55,60 @@ if ( ! class_exists( 'AASettings' ) ) {
 		}
 
 		/**
+		 * AASettings constructor.
+		 */
+		public function __construct() {
+			include_once AA_ABSPATH . 'includes/settings/settings-init.php';
+			include_once AA_ABSPATH . 'includes/aa-settings-config.php';
+			initialize_settings_fields();
+
+			$this->settings = SettingsFactory::create_settings( aa_get_settings_config() );
+			$this->settings->initialize_settings();
+			$this->settings_group = SettingsFactory::create_settings_group( aa_get_settings_screen_config() );
+
+			$this->actions_and_filters();
+		}
+
+		/**
+		 * Register the settings group settings.
+		 *
+		 * @return void
+		 */
+		public function register_settings() {
+			$this->settings_group->register( $this->settings );
+		}
+
+		/**
+		 * Get the instance of the settings class.
+		 *
+		 * @return Settings The instance of the settings class.
+		 */
+		public function get_settings(): Settings {
+			return $this->settings;
+		}
+
+		/**
 		 * Add actions and filters.
 		 */
-		public function actions_and_filters(): void {
-			add_action( 'admin_menu', array( $this, 'add_menu_page' ), 99 );
-			add_action( 'admin_init', array( $this, 'register_settings' ) );
+		public function actions_and_filters() {
+			add_action( 'admin_init', array( $this->settings, 'register' ) );
+			add_action( 'admin_menu', array( $this, 'register_settings' ) );
+			add_action( 'current_screen', array( $this, 'do_custom_actions' ), 99 );
 		}
 
 		/**
-		 * Add Autotelex Automotive menu page.
+		 * Execute custom actions.
 		 */
-		public function add_menu_page(): void {
-			add_menu_page(
-				esc_html__( 'Autotelex Automotive', 'autotelex-automotive' ),
-				esc_html__( 'Autotelex Automotive', 'autotelex-automotive' ),
-				'edit_plugins',
-				'autotelex_automotive_admin_menu',
-				null,
-				'dashicons-car',
-				56
-			);
-			add_submenu_page(
-				'autotelex_automotive_admin_menu',
-				esc_html__( 'Autotelex Automotive settings', 'autotelex-automotive' ),
-				esc_html__( 'Dashboard', 'autotelex-automotive' ),
-				'edit_plugins',
-				'autotelex_automotive_admin_menu',
-				array( $this, 'menu_dashboard_callback' )
-			);
-		}
-
-		/**
-		 * Register Autotelex Automotive settings.
-		 */
-		public function register_settings(): void {
-			register_setting(
-				'autotelex_automotive_settings',
-				'autotelex_automotive_settings',
-				array( $this, 'validate_settings' )
-			);
-			add_settings_section(
-				'authentication_settings',
-				__( 'Authentication', 'autotelex-automotive' ),
-				array( $this, 'authentication_settings_callback' ),
-				'autotelex_automotive_settings'
-			);
-			add_settings_field(
-				'authentication_settings_username',
-				__( 'Username', 'autotelex-automotive' ),
-				array( $this, 'authentication_settings_username_renderer' ),
-				'autotelex_automotive_settings',
-				'authentication_settings'
-			);
-			add_settings_field(
-				'authentication_settings_password',
-				__( 'Password', 'autotelex-automotive' ),
-				array( $this, 'authentication_settings_password_renderer' ),
-				'autotelex_automotive_settings',
-				'authentication_settings'
-			);
-		}
-
-		/**
-		 * Validate and sanitize settings before saving.
-		 *
-		 * @param array $input Non sanitized settings.
-		 *
-		 * @return array Sanitized and validated settings.
-		 */
-		public function validate_settings( array $input ): array {
-			$output                                     = array();
-			$output['authentication_settings_username'] = sanitize_text_field( (string) $input['authentication_settings_username'] );
-			$output['authentication_settings_password'] = sanitize_text_field( (string) $input['authentication_settings_password'] );
-			return $output;
-		}
-
-		/**
-		 * Print the authentication settings header.
-		 *
-		 * @return void
-		 */
-		public function authentication_settings_callback(): void {
-			echo esc_html( __( 'Authentication settings', 'autotelex-automotive' ) );
-		}
-
-		/**
-		 * Render the username field.
-		 *
-		 * @return void
-		 */
-		public function authentication_settings_username_renderer(): void {
-			$options = get_option( 'autotelex_automotive_settings' ); ?>
-			<input type='text' name='autotelex_automotive_settings[authentication_settings_username]' value="<?php echo esc_attr( $options['authentication_settings_username'] ); ?>">
-			<?php
-		}
-
-		/**
-		 * Render the password field.
-		 *
-		 * @return void
-		 */
-		public function authentication_settings_password_renderer(): void {
-			$options = get_option( 'autotelex_automotive_settings' );
-			?>
-			<input type='text' name='autotelex_automotive_settings[authentication_settings_password]' value="<?php echo esc_attr( $options['authentication_settings_password'] ); ?>">
-			<?php
-		}
-
-		/**
-		 * Render the settings menu.
-		 *
-		 * @return void
-		 */
-		public function menu_dashboard_callback(): void {
-			include_once AA_ABSPATH . 'views/autotelex-automotive-dashboard-view.php';
+		public function do_custom_actions() {
+			if ( get_current_screen()->id === 'toplevel_page_aa_admin_menu' ) {
+                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- We are passing the nonce to nonce verification.
+				if ( isset( $_POST['option_page'] ) && isset( $_POST['action'] ) && 'update' == $_POST['action'] && 'autotelex_automotive_settings' === $_POST['option_page'] && isset( $_POST['_wpnonce'] ) && wp_verify_nonce( wp_unslash( $_POST['_wpnonce'] ), 'autotelex_automotive_settings-options' ) ) {
+					$this->settings->update_settings( $_POST );
+					$this->settings->save_settings();
+					wp_redirect( '/wp-admin/admin.php?page=aa_admin_menu' );
+					exit;
+				}
+			}
 		}
 	}
 }
