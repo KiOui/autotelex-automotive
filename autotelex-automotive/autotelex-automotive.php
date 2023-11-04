@@ -3,7 +3,7 @@
  * Plugin Name: Autotelex Automotive
  * Description: A plugin for synchronizing autotelex data to a WordPress website running the Automotive WordPress theme.
  * Plugin URI: https://github.com/KiOui/autotelex-automotive
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Lars van Rhijn
  * Author URI: https://larsvanrhijn.nl/
  * Text Domain: autotelex-automotive

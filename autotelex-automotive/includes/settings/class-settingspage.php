@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-if ( ! class_exists( 'SettingsMenu' ) ) {
+if ( ! class_exists( 'SettingsPage' ) ) {
 	/**
 	 * Page for Settings.
 	 *
