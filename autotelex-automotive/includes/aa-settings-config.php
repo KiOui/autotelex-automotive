@@ -43,6 +43,13 @@ if ( ! function_exists( 'aa_get_settings_config' ) ) {
 					'default' => true,
 					'hint'    => __( 'Whether to remove listings from the website when removed from Autotelex.', 'autotelex-automotive' ),
 				),
+				array(
+					'type'    => 'bool',
+					'id'      => 'rest_update_listings_when_sold',
+					'name'    => __( 'Update listings when sold', 'autotelex-automotive' ),
+					'default' => true,
+					'hint'    => __( 'When this is disabled, listings will no longer be updated if they are sold in Autotelex.', 'autotelex-automotive' ),
+				),
 			),
 		);
 	}
@@ -68,7 +75,7 @@ if ( ! function_exists( 'aa_get_settings_screen_config' ) ) {
 					'menu_title'        => esc_html__( 'Dashboard', 'autotelex-automotive' ),
 					'capability_needed' => 'edit_plugins',
 					'menu_slug'         => 'aa_admin_menu',
-					'renderer'          => function() {
+					'renderer'          => function () {
 						include_once AA_ABSPATH . 'views/autotelex-automotive-dashboard-view.php';
 					},
 					'settings_sections' => array(
@@ -85,6 +92,7 @@ if ( ! function_exists( 'aa_get_settings_screen_config' ) ) {
 							'name'     => __( 'REST settings', 'autotelex-automotive' ),
 							'settings' => array(
 								'rest_remove_listings_on_delete_call',
+								'rest_update_listings_when_sold',
 							),
 						),
 					),

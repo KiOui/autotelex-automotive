@@ -138,7 +138,7 @@ if ( ! class_exists( 'AARest' ) ) {
 			}
 
 			$verkocht_value = $request->get_param( 'verkocht' );
-			if ( 'j' === $verkocht_value ) {
+			if ( true === $verkocht_value ) {
 				$verkocht = 1;
 			} else {
 				$verkocht = 2;
@@ -208,6 +208,19 @@ if ( ! class_exists( 'AARest' ) ) {
 				);
 			}
 
+			$should_update_listing = AASettings::instance()->get_settings()->get_value( 'rest_update_listings_when_sold' );
+			if ( ! $should_update_listing ) {
+				return new WP_REST_Response(
+					wp_json_encode(
+						(object) array(
+							'status' => 'success',
+							'reason' => 'Listing was found but not updated due to plugin settings.',
+						)
+					),
+					200
+				);
+			}
+
 			$listing_options = unserialize( get_post_meta( $post->ID, 'listing_options', true ) );
 			if ( ! is_null( $request->get_param( 'verkoopprijs_particulier' ) ) ) {
 				if ( ! isset( $listing_options['price'] ) ) {
@@ -222,22 +235,20 @@ if ( ! class_exists( 'AARest' ) ) {
 			);
 
 			$verkocht_value = $request->get_param( 'verkocht' );
-			if ( 'j' === $verkocht_value ) {
+			if ( true === $verkocht_value ) {
 				$verkocht = 1;
-			} elseif ( 'n' === $verkocht_value ) {
-				$verkocht = 2;
 			} else {
-				$verkocht = null;
+				$verkocht = 2;
 			}
 
 			$new_meta_data = array(
 				'listing_options' => serialize( $listing_options ),
-				'verkocht'        => $verkocht,
+				'car_sold'        => $verkocht,
 			);
 
 			$new_post_data = array_filter(
 				$new_post_data,
-				function( $element ) {
+				function ( $element ) {
 					return ! is_null( $element );
 				}
 			);
