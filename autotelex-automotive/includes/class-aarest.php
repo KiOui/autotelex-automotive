@@ -52,8 +52,9 @@ if ( ! class_exists( 'AARest' ) ) {
 						),
 						'verkoopprijs_particulier' => array(
 							'required'          => false,
-							'type'              => 'int',
-							'sanitize_callback' => 'aa_sanitize_int',
+							'type'              => 'float',
+							'validate_callback' => array( $this, 'validate_verkoopprijs_particulier' ),
+							'sanitize_callback' => array( $this, 'sanitize_verkoopprijs_particulier' ),
 						),
 						'opmerkingen'              => array(
 							'required'          => false,
@@ -258,12 +259,11 @@ if ( ! class_exists( 'AARest' ) ) {
 			}
 
 			$listing_options = unserialize( get_post_meta( $post->ID, 'listing_options', true ) );
-			if ( ! is_null( $request->get_param( 'verkoopprijs_particulier' ) ) ) {
-				if ( ! isset( $listing_options['price'] ) ) {
-					$listing_options['price'] = array();
-				}
-				$listing_options['price']['value'] = $request->get_param( 'verkoopprijs_particulier' );
-			}
+
+			$listing_options['price'] = array(
+				'value'    => is_null( $request->get_param( 'verkoopprijs_particulier' ) ) ? '' : $request->get_param( 'verkoopprijs_particulier' ),
+				'original' => '',
+			);
 
 			$listing_options['custom_badge'] = is_null( $badge_to_set ) ? '' : $badge_to_set;
 
@@ -533,6 +533,49 @@ if ( ! class_exists( 'AARest' ) ) {
 					'i',
 				)
 			);
+		}
+
+		/**
+		 * Validate verkoopprijs_particulier REST parameter.
+		 *
+		 * @param mixed           $param   The value of the REST parameter.
+		 * @param WP_REST_Request $request The request.
+		 * @param string          $key     The parameter name.
+		 *
+		 * @return bool Whether the verkoopprijs_particulier parameter was validated correctly.
+		 */
+		public function validate_verkoopprijs_particulier( $param, WP_REST_Request $request, string $key ): bool {
+			if ( ! is_array( $param ) || ! isset( $param['prijzen'] ) ) {
+				return false;
+			}
+
+			// There are two options, either `prijzen` is an empty string, meaning no prices are set. Or `prijzen` is an object meaning a price is set.
+			if ( is_string( $param['prijzen'] ) ) {
+				// No prices are set, will be set to null in the sanitize function.
+				return true;
+			}
+
+			// We are only supporting one prijs in the prijzen array for now.
+			return is_array( $param['prijzen'] ) && isset( $param['prijzen']['prijs'] ) && is_array( $param['prijzen']['prijs'] ) && isset( $param['prijzen']['prijs']['bedrag'] ) && is_numeric( $param['prijzen']['prijs']['bedrag'] );
+		}
+
+		/**
+		 * Sanitize verkoopprijs_particulier REST parameter.
+		 *
+		 * @param mixed           $value The value of the REST parameter.
+		 * @param WP_REST_Request $request The request.
+		 * @param string          $param The parameter name.
+		 *
+		 * @return string Sanitized REST parameter for verkoopprijs_particulier.
+		 */
+		public function sanitize_verkoopprijs_particulier( $value, WP_REST_Request $request, string $param ): ?float {
+			// `prijzen` are not set.
+			if ( is_string( $value['prijzen'] ) ) {
+				return null;
+			}
+
+			// `prijzen` are set.
+			return floatval( $value['prijzen']['prijs']['bedrag'] );
 		}
 	}
 }
