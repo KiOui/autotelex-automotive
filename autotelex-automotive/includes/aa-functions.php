@@ -294,6 +294,7 @@ if ( ! function_exists( 'aa_is_xml_content_type' ) ) {
 	function aa_is_xml_content_type( string $content_type ): bool {
 		$accepted = array(
 			'text/xml',
+			'application/xml',
 			'application/rss+xml',
 			'application/atom+xml',
 			'application/rdf+xml',

@@ -40,6 +40,11 @@ if ( ! class_exists( 'AARest' ) ) {
 							'type'              => 'string',
 							'sanitize_callback' => 'sanitize_text_field',
 						),
+						'hexon_id'         => array(
+							'required'          => true,
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						),
 						'kenteken'                 => array(
 							'required'          => false,
 							'type'              => 'string',
@@ -125,7 +130,7 @@ if ( ! class_exists( 'AARest' ) ) {
 		 * @return WP_REST_Response A response object with the response.
 		 */
 		private function add_listing( WP_REST_Request $request ): WP_REST_Response {
-			if ( $this->listing_exists( $request->get_param( 'voertuignr_hexon' ) ) ) {
+			if ( $this->listing_exists( $request->get_param( 'hexon_id' ) ) ) {
 				return new WP_REST_Response(
 					wp_json_encode(
 						(object) array(
@@ -151,7 +156,7 @@ if ( ! class_exists( 'AARest' ) ) {
 					'post_status'  => 'publish',
 					'post_type'    => 'listings',
 					'meta_input'   => array(
-						'aa_unique_id'    => $request->get_param( 'voertuignr_hexon' ),
+						'aa_unique_id'    => $request->get_param( 'hexon_id' ),
 						'listing_options' => serialize(
 							array(
 								'price' => array(
@@ -195,17 +200,26 @@ if ( ! class_exists( 'AARest' ) ) {
 		 * @return WP_REST_Response A response object with the response.
 		 */
 		private function change_listing( WP_REST_Request $request ): WP_REST_Response {
-			$post = $this->get_listing_by_meta_id( $request->get_param( 'voertuignr_hexon' ) );
+			// NEW method, use hexon_id.
+			$post = $this->get_listing_by_meta_id( $request->get_param( 'hexon_id' ) );
 			if ( is_null( $post ) ) {
-				return new WP_REST_Response(
-					wp_json_encode(
-						(object) array(
-							'status' => 'failed',
-							'reason' => 'The post with that Hexon ID does not exist.',
-						)
-					),
-					400
-				);
+				// OLD (fallback) method, use voertuignr_hexon.
+				$post = $this->get_listing_by_meta_id( $request->get_param( 'voertuignr_hexon' ) );
+
+				if ( is_null( $post ) ) {
+					return new WP_REST_Response(
+						wp_json_encode(
+							(object) array(
+								'status' => 'failed',
+								'reason' => 'The post with that Hexon ID does not exist.',
+							)
+						),
+						400
+					);
+				}
+
+				// If we find a post with the old identifier, we should update the identifier.
+				update_post_meta( $post->ID, 'aa_unique_id', $request->get_param( 'hexon_id' ) );
 			}
 
 			$should_update_listing = AASettings::instance()->get_settings()->get_value( 'rest_update_listings_when_sold' );
@@ -310,17 +324,26 @@ if ( ! class_exists( 'AARest' ) ) {
 		 * @return WP_REST_Response A response object with the response.
 		 */
 		private function delete_listing( WP_REST_Request $request ): WP_REST_Response {
-			$post = $this->get_listing_by_meta_id( $request->get_param( 'voertuignr_hexon' ) );
+			// NEW method, use hexon_id.
+			$post = $this->get_listing_by_meta_id( $request->get_param( 'hexon_id' ) );
 			if ( is_null( $post ) ) {
-				return new WP_REST_Response(
-					wp_json_encode(
-						(object) array(
-							'status' => 'failed',
-							'reason' => 'The post with that Hexon ID does not exist.',
-						)
-					),
-					400
-				);
+				// OLD (fallback) method, use voertuignr_hexon.
+				$post = $this->get_listing_by_meta_id( $request->get_param( 'voertuignr_hexon' ) );
+
+				if ( is_null( $post ) ) {
+					return new WP_REST_Response(
+						wp_json_encode(
+							(object) array(
+								'status' => 'failed',
+								'reason' => 'The post with that Hexon ID does not exist.',
+							)
+						),
+						400
+					);
+				}
+
+				// If we find a post with the old identifier, we should update the identifier.
+				update_post_meta( $post->ID, 'aa_unique_id', $request->get_param( 'hexon_id' ) );
 			}
 
 			$should_delete_listings = AASettings::instance()->get_settings()->get_value( 'rest_remove_listings_on_delete_call' );
