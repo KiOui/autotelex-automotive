@@ -71,6 +71,12 @@ if ( ! class_exists( 'AARest' ) ) {
 							'validate_callback' => array( $this, 'validate_verkocht' ),
 							'sanitize_callback' => 'aa_sanitize_autotelex_bool',
 						),
+						'gereserveerd'             => array(
+							'required'          => false,
+							'type'              => 'bool',
+							'validate_callback' => array( $this, 'validate_gereserveerd' ),
+							'sanitize_callback' => 'aa_sanitize_autotelex_bool',
+						),
 						'afbeeldingen'             => array(
 							'required'          => false,
 							'type'              => 'string',
@@ -149,6 +155,13 @@ if ( ! class_exists( 'AARest' ) ) {
 				$verkocht = 2;
 			}
 
+			$gereserveerd_value = $request->get_param( 'gereserveerd' );
+			if ( true === $gereserveerd_value ) {
+				$badge_to_set = AASettings::instance()->get_settings()->get_value( 'rest_reserved_badge_name' );
+			} else {
+				$badge_to_set = null;
+			}
+
 			$post_id = wp_insert_post(
 				array(
 					'post_title'   => $request->get_param( 'titel' ),
@@ -163,6 +176,7 @@ if ( ! class_exists( 'AARest' ) ) {
 									'value'    => is_null( $request->get_param( 'verkoopprijs_particulier' ) ) ? '' : $request->get_param( 'verkoopprijs_particulier' ),
 									'original' => '',
 								),
+								'custom_badge' => is_null( $badge_to_set ) ? '' : $badge_to_set,
 							)
 						),
 						'car_sold'        => $verkocht,
@@ -222,8 +236,9 @@ if ( ! class_exists( 'AARest' ) ) {
 				update_post_meta( $post->ID, 'aa_unique_id', $request->get_param( 'hexon_id' ) );
 			}
 
-			$should_update_listing = AASettings::instance()->get_settings()->get_value( 'rest_update_listings_when_sold' );
-			if ( ! $should_update_listing ) {
+			$should_update_listing_when_sold = AASettings::instance()->get_settings()->get_value( 'rest_update_listings_when_sold' );
+			$verkocht_value = $request->get_param( 'verkocht' );
+			if ( ! $should_update_listing_when_sold && $verkocht_value ) {
 				return new WP_REST_Response(
 					wp_json_encode(
 						(object) array(
@@ -235,6 +250,13 @@ if ( ! class_exists( 'AARest' ) ) {
 				);
 			}
 
+			$gereserveerd_value = $request->get_param( 'gereserveerd' );
+			if ( true === $gereserveerd_value ) {
+				$badge_to_set = AASettings::instance()->get_settings()->get_value( 'rest_reserved_badge_name' );
+			} else {
+				$badge_to_set = null;
+			}
+
 			$listing_options = unserialize( get_post_meta( $post->ID, 'listing_options', true ) );
 			if ( ! is_null( $request->get_param( 'verkoopprijs_particulier' ) ) ) {
 				if ( ! isset( $listing_options['price'] ) ) {
@@ -243,12 +265,13 @@ if ( ! class_exists( 'AARest' ) ) {
 				$listing_options['price']['value'] = $request->get_param( 'verkoopprijs_particulier' );
 			}
 
+			$listing_options['custom_badge'] = is_null( $badge_to_set ) ? '' : $badge_to_set;
+
 			$new_post_data = array(
 				'post_title'   => $request->get_param( 'titel' ),
 				'post_content' => $request->get_param( 'opmerkingen' ),
 			);
 
-			$verkocht_value = $request->get_param( 'verkocht' );
 			if ( true === $verkocht_value ) {
 				$verkocht = 1;
 			} else {
@@ -459,6 +482,19 @@ if ( ! class_exists( 'AARest' ) ) {
 		 * @return bool Whether the verkocht parameter was validated correctly.
 		 */
 		public function validate_verkocht( $param, WP_REST_Request $request, string $key ): bool {
+			return 'j' === $param || 'n' === $param;
+		}
+
+		/**
+		 * Validate gereserveerd REST parameter.
+		 *
+		 * @param mixed           $param   The value of the REST parameter.
+		 * @param WP_REST_Request $request The request.
+		 * @param string          $key     The key of the parameter.
+		 *
+		 * @return bool Whether the gereserveerd parameter was validated correctly.
+		 */
+		public function validate_gereserveerd( $param, WP_REST_Request $request, string $key ): bool {
 			return 'j' === $param || 'n' === $param;
 		}
 

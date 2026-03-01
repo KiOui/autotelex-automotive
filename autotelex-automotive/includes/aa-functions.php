@@ -356,3 +356,38 @@ if ( ! function_exists( 'aa_convert_xml_request_to_json_request' ) ) {
 		return $result;
 	}
 }
+
+if ( ! function_exists( 'aa_get_automotive_badges' ) ) {
+	/**
+	 * Retrieve the registered badges from Automotive.
+	 *
+	 * @return array The registered Automotive badges.
+	 */
+	function aa_get_automotive_badges(): array {
+		global $lwp_options;
+
+		if ( isset( $lwp_options ) && isset( $lwp_options['custom_badges'] ) && is_array( $lwp_options['custom_badges'] ) ) {
+			return array_values( array_filter( $lwp_options['custom_badges']['name'] ) );
+		}
+
+		return array();
+	}
+}
+
+if ( ! function_exists( 'aa_get_badges_choices' ) ) {
+	/**
+	 * Get choices for badges setting.
+	 *
+	 * @return array An array of string => string choices.
+	 */
+	function aa_get_badges_choices(): array {
+		$badges = aa_get_automotive_badges();
+
+		$retvalue = array();
+		foreach ( $badges as $badge ) {
+			$retvalue[ strval( $badge ) ] = strval( $badge );
+		}
+
+		return $retvalue;
+	}
+}

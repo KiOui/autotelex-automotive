@@ -50,6 +50,14 @@ if ( ! function_exists( 'aa_get_settings_config' ) ) {
 					'default' => true,
 					'hint'    => __( 'When this is disabled, listings will no longer be updated if they are sold in Autotelex.', 'autotelex-automotive' ),
 				),
+				array(
+					'type'        => 'callable_choice',
+					'id'          => 'rest_reserved_badge_name',
+					'name'        => __( 'Badge name', 'autotelex-automotive' ),
+					'can_be_null' => true,
+					'callable'    => 'aa_get_badges_choices',
+					'hint'        => __( 'This badge will be set when the listing is reserved', 'autotelex-automotive' ),
+				),
 			),
 		);
 	}
@@ -93,6 +101,7 @@ if ( ! function_exists( 'aa_get_settings_screen_config' ) ) {
 							'settings' => array(
 								'rest_remove_listings_on_delete_call',
 								'rest_update_listings_when_sold',
+								'rest_reserved_badge_name',
 							),
 						),
 					),
