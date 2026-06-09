@@ -417,6 +417,18 @@ if ( ! class_exists( 'AARest' ) ) {
 					200
 				);
 			} else {
+				// We prefix the title if the listing is removed and should not be deleted.
+				$replace_value = AASettings::instance()->get_settings()->get_value( 'rest_text_when_listing_sold' );
+				if ( '' !== $replace_value ) {
+					$new_post_data = array(
+						'ID'         => $post->ID,
+						'post_title' => esc_html( $replace_value ),
+					);
+
+					wp_update_post(
+						$new_post_data
+					);
+				}
 				return new WP_REST_Response(
 					wp_json_encode(
 						(object) array(
