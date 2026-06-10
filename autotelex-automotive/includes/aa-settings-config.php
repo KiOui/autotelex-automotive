@@ -44,11 +44,11 @@ if ( ! function_exists( 'aa_get_settings_config' ) ) {
 					'hint'    => __( 'Whether to remove listings from the website when removed from Autotelex.', 'autotelex-automotive' ),
 				),
 				array(
-					'type'    => 'bool',
-					'id'      => 'rest_update_listings_when_sold',
-					'name'    => __( 'Update listings when sold', 'autotelex-automotive' ),
-					'default' => true,
-					'hint'    => __( 'When this is disabled, listings will no longer be updated if they are sold in Autotelex.', 'autotelex-automotive' ),
+					'type'    => 'text',
+					'id'      => 'rest_text_when_listing_sold',
+					'name'    => __( 'Replace listing title with this text when sold', 'autotelex-automotive' ),
+					'default' => '',
+					'hint'    => __( 'This text will be replaced in the listing title when it is marked as sold.', 'autotelex-automotive' ),
 				),
 				array(
 					'type'        => 'callable_choice',
@@ -100,7 +100,7 @@ if ( ! function_exists( 'aa_get_settings_screen_config' ) ) {
 							'name'     => __( 'REST settings', 'autotelex-automotive' ),
 							'settings' => array(
 								'rest_remove_listings_on_delete_call',
-								'rest_update_listings_when_sold',
+								'rest_text_when_listing_sold',
 								'rest_reserved_badge_name',
 							),
 						),
