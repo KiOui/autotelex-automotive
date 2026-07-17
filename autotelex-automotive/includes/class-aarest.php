@@ -179,15 +179,6 @@ if ( ! class_exists( 'AARest' ) ) {
 				$price_to_set = null;
 			}
 
-			$title_to_set = $request->get_param( 'titel' );
-			// We prefix the title if the listing is sold.
-			if ( true === $verkocht_value ) {
-				$replace_value = AASettings::instance()->get_settings()->get_value( 'rest_text_when_listing_sold' );
-				if ( '' !== $replace_value ) {
-					$title_to_set = esc_html( $replace_value );
-				}
-			}
-
 			if ( true === $verkocht_value ) {
 				$verkocht = 1;
 			} else {
@@ -310,15 +301,6 @@ if ( ! class_exists( 'AARest' ) ) {
 				'value'    => is_null( $price_to_set ) ? '' : $price_to_set,
 				'original' => '',
 			);
-
-			$title_to_set = $request->get_param( 'titel' );
-			// We prefix the title if the listing is sold.
-			if ( true === $verkocht_value ) {
-				$replace_value = AASettings::instance()->get_settings()->get_value( 'rest_text_when_listing_sold' );
-				if ( '' !== $replace_value ) {
-					$title_to_set = esc_html( $replace_value );
-				}
-			}
 
 			$new_post_data = array(
 				'post_title'   => $title_to_set,
