@@ -179,6 +179,8 @@ if ( ! class_exists( 'AARest' ) ) {
 				$price_to_set = null;
 			}
 
+			$title_to_set = $request->get_param( 'titel' );
+
 			if ( true === $verkocht_value ) {
 				$verkocht = 1;
 			} else {
@@ -296,6 +298,8 @@ if ( ! class_exists( 'AARest' ) ) {
 			} else {
 				$price_to_set = null;
 			}
+
+			$title_to_set = $request->get_param( 'titel' );
 
 			$listing_options['price'] = array(
 				'value'    => is_null( $price_to_set ) ? '' : $price_to_set,
