@@ -66,10 +66,17 @@ if ( ! class_exists( 'AARest' ) ) {
 							'type'              => 'string',
 							'sanitize_callback' => array( $this, 'sanitize_titel' ),
 						),
+						// This property is deprecated in favor of `isSold` (`extra06`).
 						'verkocht'                 => array(
 							'required'          => false,
 							'type'              => 'bool',
 							'validate_callback' => array( $this, 'validate_verkocht' ),
+							'sanitize_callback' => 'aa_sanitize_autotelex_bool',
+						),
+						'extra06'                  => array(
+							'required'          => false,
+							'type'              => 'bool',
+							'validate_callback' => array( $this, 'validate_extra06' ),
 							'sanitize_callback' => 'aa_sanitize_autotelex_bool',
 						),
 						'gereserveerd'             => array(
@@ -162,7 +169,8 @@ if ( ! class_exists( 'AARest' ) ) {
 				);
 			}
 
-			$verkocht_value = $request->get_param( 'verkocht' );
+			// The `extra06` parameter is the `isSold` parameter. This replaces `verkocht`.
+			$verkocht_value = $request->get_param( 'extra06' );
 			$gereserveerd_value = $request->get_param( 'gereserveerd' );
 
 			// We only reserve a listing if it is not sold and it is reserved.
@@ -280,7 +288,8 @@ if ( ! class_exists( 'AARest' ) ) {
 
 			$listing_options = unserialize( get_post_meta( $post->ID, 'listing_options', true ) );
 
-			$verkocht_value = $request->get_param( 'verkocht' );
+			// The `extra06` parameter is the `isSold` parameter. This replaces `verkocht`.
+			$verkocht_value = $request->get_param( 'extra06' );
 			$gereserveerd_value = $request->get_param( 'gereserveerd' );
 
 			// We only reserve a listing if it is not sold and it is reserved.
@@ -548,6 +557,19 @@ if ( ! class_exists( 'AARest' ) ) {
 		 */
 		public function validate_verkocht( $param, WP_REST_Request $request, string $key ): bool {
 			return 'j' === $param || 'n' === $param;
+		}
+
+		/**
+		 * Validate extra06 REST parameter.
+		 *
+		 * @param mixed           $param   The value of the REST parameter.
+		 * @param WP_REST_Request $request The request.
+		 * @param string          $key     The key of the parameter.
+		 *
+		 * @return bool Whether the verkocht parameter was validated correctly.
+		 */
+		public function validate_extra06( $param, WP_REST_Request $request, string $key ): bool {
+			return '0' === $param || '1' === $param;
 		}
 
 		/**

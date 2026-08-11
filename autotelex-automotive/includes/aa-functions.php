@@ -32,7 +32,8 @@ if ( ! function_exists( 'aa_sanitize_autotelex_bool' ) ) {
 	 * @return bool The sanitized value.
 	 */
 	function aa_sanitize_autotelex_bool( $to_sanitize ): bool {
-		return 'j' === $to_sanitize;
+		// An Autotelex boolean is always either 'j' or 'n', or '1' or '0'.
+		return 'j' === $to_sanitize || '1' === $to_sanitize;
 	}
 }
 
