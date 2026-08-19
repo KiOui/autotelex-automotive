@@ -53,10 +53,18 @@ if ( ! function_exists( 'aa_get_settings_config' ) ) {
 				array(
 					'type'        => 'callable_choice',
 					'id'          => 'rest_reserved_badge_name',
-					'name'        => __( 'Badge name', 'autotelex-automotive' ),
+					'name'        => __( 'Reserved badge name', 'autotelex-automotive' ),
 					'can_be_null' => true,
 					'callable'    => 'aa_get_badges_choices',
 					'hint'        => __( 'This badge will be set when the listing is reserved', 'autotelex-automotive' ),
+				),
+				array(
+					'type'        => 'callable_choice',
+					'id'          => 'rest_sold_badge_name',
+					'name'        => __( 'Sold badge name', 'autotelex-automotive' ),
+					'can_be_null' => true,
+					'callable'    => 'aa_get_badges_choices',
+					'hint'        => __( 'This badge will be set when the listing is sold', 'autotelex-automotive' ),
 				),
 			),
 		);
@@ -102,6 +110,7 @@ if ( ! function_exists( 'aa_get_settings_screen_config' ) ) {
 								'rest_remove_listings_on_delete_call',
 								'rest_text_when_listing_sold',
 								'rest_reserved_badge_name',
+								'rest_sold_badge_name',
 							),
 						),
 					),
