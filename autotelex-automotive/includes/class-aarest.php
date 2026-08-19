@@ -173,27 +173,21 @@ if ( ! class_exists( 'AARest' ) ) {
 			$verkocht_value = $request->get_param( 'extra06' );
 			$gereserveerd_value = $request->get_param( 'gereserveerd' );
 
-			// We only reserve a listing if it is not sold and it is reserved.
-			if ( true === $gereserveerd_value && false === $verkocht_value ) {
+			if ( true === $verkocht_value ) {
+				// If a listing is sold, set the sold badge and don't set a price.
+				$badge_to_set = AASettings::instance()->get_settings()->get_value( 'rest_sold_badge_name' );
+				$price_to_set = null;
+			} else if ( true === $gereserveerd_value ) {
+				// If a listing is not sold, but is reserved, set the reserved badge and set a price.
 				$badge_to_set = AASettings::instance()->get_settings()->get_value( 'rest_reserved_badge_name' );
-			} else {
-				$badge_to_set = null;
-			}
-
-			// We only set a price if the listing is not sold and the price is set.
-			if ( false === $verkocht_value && ! is_null( $request->get_param( 'verkoopprijs_particulier' ) ) ) {
 				$price_to_set = $request->get_param( 'verkoopprijs_particulier' );
 			} else {
-				$price_to_set = null;
+				// If a listing is not sold and not reserved, set no badge and set the price.
+				$badge_to_set = null;
+				$price_to_set = $request->get_param( 'verkoopprijs_particulier' );
 			}
 
 			$title_to_set = $request->get_param( 'titel' );
-
-			if ( true === $verkocht_value ) {
-				$verkocht = 1;
-			} else {
-				$verkocht = 2;
-			}
 
 			$post_id = wp_insert_post(
 				array(
@@ -213,7 +207,6 @@ if ( ! class_exists( 'AARest' ) ) {
 								'custom_badge' => is_null( $badge_to_set ) ? '' : $badge_to_set,
 							)
 						),
-						'car_sold'            => $verkocht,
 					),
 				)
 			);
@@ -292,28 +285,27 @@ if ( ! class_exists( 'AARest' ) ) {
 			$verkocht_value = $request->get_param( 'extra06' );
 			$gereserveerd_value = $request->get_param( 'gereserveerd' );
 
-			// We only reserve a listing if it is not sold and it is reserved.
-			if ( true === $gereserveerd_value && false === $verkocht_value ) {
+			if ( true === $verkocht_value ) {
+				// If a listing is sold, set the sold badge and don't set a price.
+				$badge_to_set = AASettings::instance()->get_settings()->get_value( 'rest_sold_badge_name' );
+				$price_to_set = null;
+			} else if ( true === $gereserveerd_value ) {
+				// If a listing is not sold, but is reserved, set the reserved badge and set a price.
 				$badge_to_set = AASettings::instance()->get_settings()->get_value( 'rest_reserved_badge_name' );
+				$price_to_set = $request->get_param( 'verkoopprijs_particulier' );
 			} else {
+				// If a listing is not sold and not reserved, set no badge and set the price.
 				$badge_to_set = null;
+				$price_to_set = $request->get_param( 'verkoopprijs_particulier' );
 			}
 
 			$listing_options['custom_badge'] = is_null( $badge_to_set ) ? '' : $badge_to_set;
-
-			// We only set a price if the listing is not sold and the price is set.
-			if ( false === $verkocht_value && ! is_null( $request->get_param( 'verkoopprijs_particulier' ) ) ) {
-				$price_to_set = $request->get_param( 'verkoopprijs_particulier' );
-			} else {
-				$price_to_set = null;
-			}
-
-			$title_to_set = $request->get_param( 'titel' );
-
 			$listing_options['price'] = array(
 				'value'    => is_null( $price_to_set ) ? '' : $price_to_set,
 				'original' => '',
 			);
+
+			$title_to_set = $request->get_param( 'titel' );
 
 			$new_post_data = array(
 				'post_title'   => $title_to_set,
