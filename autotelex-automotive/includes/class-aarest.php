@@ -312,15 +312,8 @@ if ( ! class_exists( 'AARest' ) ) {
 				'post_content' => $request->get_param( 'opmerkingen' ),
 			);
 
-			if ( true === $verkocht_value ) {
-				$verkocht = 1;
-			} else {
-				$verkocht = 2;
-			}
-
 			$new_meta_data = array(
 				'listing_options' => serialize( $listing_options ),
-				'car_sold'        => $verkocht,
 			);
 
 			$new_post_data = array_filter(
@@ -426,18 +419,48 @@ if ( ! class_exists( 'AARest' ) ) {
 					200
 				);
 			} else {
+				$listing_options = unserialize( get_post_meta( $post->ID, 'listing_options', true ) );
+
+				// Unset price and badge.
+				$listing_options['custom_badge'] = '';
+				$listing_options['price'] = array(
+					'value'    => '',
+					'original' => '',
+				);
+
+				$new_post_data = array();
+
 				// We prefix the title if the listing is removed and should not be deleted.
 				$replace_value = AASettings::instance()->get_settings()->get_value( 'rest_text_when_listing_sold' );
 				if ( '' !== $replace_value ) {
-					$new_post_data = array(
-						'ID'         => $post->ID,
-						'post_title' => esc_html( $replace_value ),
-					);
-
-					wp_update_post(
-						$new_post_data
-					);
+					$new_post_data['post_title'] = esc_html( $replace_value );
 				}
+
+				$new_meta_data = array(
+					'listing_options' => serialize( $listing_options ),
+				);
+
+				$new_post_data = array_filter(
+					$new_post_data,
+					function ( $element ) {
+						return ! is_null( $element );
+					}
+				);
+
+				$new_meta_data = array_filter(
+					$new_meta_data,
+					function ( $element ) {
+						return ! is_null( $element );
+					}
+				);
+
+				$new_post_data['meta_input'] = $new_meta_data;
+				$new_post_data['ID']         = $post->ID;
+
+				wp_update_post(
+					$new_post_data
+				);
+
 				return new WP_REST_Response(
 					wp_json_encode(
 						(object) array(
